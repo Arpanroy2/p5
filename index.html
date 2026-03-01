@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JUPITER · complete + shake</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', 'Poppins', 'Arial Black', sans-serif;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      min-height: 100vh;
+      background: #000;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* animated starfield canvas */
+    #starfield-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -5;
+      display: block;
+      background: radial-gradient(ellipse at center, #0a0f2a 0%, #030514 100%);
+      pointer-events: none;
+    }
+
+    /* space image slideshow overlay */
+    #bg-slideshow {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -4;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      opacity: 0.3;
+      transition: opacity 1.5s;
+      mix-blend-mode: lighten;
+      pointer-events: none;
+    }
+
+    /* floating jupiter background */
+    .floating-jupiter {
+      position: fixed;
+      bottom: -150px;
+      right: -100px;
+      width: 500px;
+      height: 500px;
+      background: url('jupiter.jpg') no-repeat center/contain;
+      opacity: 0.15;
+      pointer-events: none;
+      z-index: -3;
+      animation: rotateJupiter 80s infinite linear, float 12s infinite alternate ease-in-out;
+      filter: drop-shadow(0 0 30px #ffaa33);
+    }
+
+    @keyframes rotateJupiter {
+      0% { transform: rotate(0deg) scale(1); }
+      100% { transform: rotate(360deg) scale(1.05); }
+    }
+    @keyframes float {
+      0% { transform: translateY(0) rotate(0deg); }
+      100% { transform: translateY(-30px) rotate(2deg); }
+    }
+
+    .overlay {
+      position: relative;
+      z-index: 2;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      width: 100%;
+      min-height: 100vh;
+      padding: 20px 40px 100px;
+      color: #f0f8ff;
+      box-shadow: inset 0 0 100px rgba(255, 215, 0, 0.2);
+      transition: transform 0.1s; /* for shake, will override with animation */
+    }
+
+    /* SHAKE animation */
+    @keyframes globalShake {
+      0% { transform: translate(0, 0); }
+      10% { transform: translate(-10px, 5px); }
+      20% { transform: translate(8px, -8px); }
+      30% { transform: translate(-6px, 10px); }
+      40% { transform: translate(12px, -4px); }
+      50% { transform: translate(-14px, 6px); }
+      60% { transform: translate(10px, -12px); }
+      70% { transform: translate(-8px, 8px); }
+      80% { transform: translate(6px, -5px); }
+      90% { transform: translate(-4px, 3px); }
+      100% { transform: translate(0, 0); }
+    }
+
+    .overlay.shake-now {
+      animation: globalShake 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.5);
+    }
+
+    /* floating action buttons */
+    .float-buttons {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      z-index: 100;
+    }
+    .float-btn {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #ffaa33, #b45f1b);
+      border: 2px solid #ffd966;
+      box-shadow: 0 0 25px #ff9900, 0 4px 10px black;
+      color: #0a0f1e;
+      font-size: 24px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      animation: floatGlow 2s infinite alternate;
+      text-decoration: none;
+    }
+    .float-btn:hover {
+      transform: scale(1.3) rotate(10deg);
+      background: #ffcc66;
+      box-shadow: 0 0 45px #ffcc00, 0 0 90px #ffaa00;
+      border-color: white;
+    }
+    @keyframes floatGlow {
+      0% { box-shadow: 0 0 15px #ff9900, 0 4px 10px black; }
+      100% { box-shadow: 0 0 40px #ffaa33, 0 8px 25px black; }
+    }
+
+    .nav-mini {
+      left: 30px;
+      right: auto;
+      bottom: 30px;
+      flex-direction: row;
+    }
+    .nav-mini .float-btn {
+      width: 50px;
+      height: 50px;
+      font-size: 18px;
+      background: #14213d;
+      border-color: #fca311;
+      color: #e5e5e5;
+    }
+
+    /* wish button special style */
+    #wishBtn {
+      background: radial-gradient(circle at 30% 30%, #ff66cc, #9900ff);
+      border-color: #f0f;
+      box-shadow: 0 0 30px #ff44ee, 0 0 80px #aa00ff;
+      animation: wishPulse 1.5s infinite alternate;
+    }
+    @keyframes wishPulse {
+      0% { box-shadow: 0 0 20px #ff66cc, 0 0 40px #cc00ff; }
+      100% { box-shadow: 0 0 60px #ffaaff, 0 0 120px #ff00c8; }
+    }
+
+    /* SHAKE button special color */
+    #shakeBtn {
+      background: radial-gradient(circle at 30% 30%, #33ccff, #0066cc);
+      border-color: #66ffff;
+      box-shadow: 0 0 30px #00aaff, 0 0 80px #0044ff;
+      animation: shakePulse 1.2s infinite alternate;
+    }
+    @keyframes shakePulse {
+      0% { box-shadow: 0 0 20px #33ccff, 0 0 40px #0066cc; }
+      100% { box-shadow: 0 0 60px #66ffff, 0 0 120px #0088ff; }
+    }
+
+    /* headings */
+    h1, h2, h3 {
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      text-shadow: 0 0 12px cyan, 2px 2px 0 #ff00c1;
+      animation: hueCycle 10s infinite linear;
+    }
+    @keyframes hueCycle {
+      0% { filter: hue-rotate(0deg); }
+      50% { filter: hue-rotate(30deg); text-shadow: 0 0 20px lime, 2px 2px 0 magenta; }
+      100% { filter: hue-rotate(0deg); }
+    }
+
+    h1 { font-size: 3.5rem; margin-bottom: 10px; }
+    h2 { font-size: 2.5rem; border-left: 10px solid #ffaa33; padding-left: 20px; margin: 50px 0 20px; }
+    h3 { font-size: 1.8rem; }
+
+    /* sliding sections */
+    .slide-section {
+      background: rgba(10, 20, 40, 0.6);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 200, 100, 0.3);
+      border-radius: 40px;
+      padding: 30px;
+      margin-bottom: 40px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6), 0 0 0 2px #ffaa33 inset;
+      transform: translateX(-100px) scale(0.9);
+      opacity: 0;
+      transition: transform 0.8s cubic-bezier(0.2, 0.9, 0.3, 1.1), opacity 0.8s;
+      will-change: transform, opacity;
+    }
+    .slide-section.reveal {
+      transform: translateX(0) scale(1);
+      opacity: 1;
+    }
+    .slide-section:nth-child(even) {
+      transform: translateX(100px) scale(0.9);
+    }
+
+    /* tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 1rem;
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+    }
+    th, td {
+      padding: 12px 15px;
+      text-align: left;
+      border-bottom: 1px solid #ffaa33;
+      color: #fff0d0;
+      text-shadow: 0 0 3px black;
+    }
+    th {
+      background: #3a2c1b;
+      color: #ffd966;
+    }
+
+    /* lists */
+    ul, ol {
+      line-height: 1.8;
+      font-size: 1.1rem;
+      list-style-type: none;
+    }
+    li {
+      margin: 8px 0;
+      padding-left: 30px;
+      position: relative;
+    }
+    li::before {
+      content: "🪐";
+      position: absolute;
+      left: 0;
+      color: #ffbb33;
+      text-shadow: 0 0 15px gold;
+      animation: wobble 2s infinite;
+    }
+    @keyframes wobble {
+      0%,100%{ transform: translateX(0); }
+      50%{ transform: translateX(5px); }
+    }
+
+    pre {
+      background: #0b0e14;
+      padding: 20px;
+      border-radius: 30px;
+      color: #8affb9;
+      font-size: 0.9rem;
+      border: 2px solid #f0a500;
+      overflow-x: auto;
+      box-shadow: 0 0 40px #00a6ff4d;
+    }
+
+    .anim-btn {
+      background: linear-gradient(145deg, #ffaa33, #ff6a00);
+      border: none;
+      color: #1a0f0f;
+      font-weight: bold;
+      font-size: 1.3rem;
+      padding: 14px 40px;
+      border-radius: 60px;
+      cursor: pointer;
+      margin: 20px 10px 0 0;
+      box-shadow: 0 0 25px orange;
+      transition: 0.2s;
+      animation: btnPulse 2s infinite;
+      border: 2px solid #fff6d0;
+    }
+    .anim-btn:hover {
+      transform: scale(1.1) rotate(-2deg);
+      background: linear-gradient(145deg, #ffcc66, #ff9900);
+      box-shadow: 0 0 50px #ffcc00, 0 0 100px red;
+    }
+    @keyframes btnPulse {
+      0% { box-shadow: 0 0 15px orange; }
+      50% { box-shadow: 0 0 45px #ff3300; }
+    }
+
+    /* explosion area */
+    #explosion-area {
+      display: flex;
+      justify-content: center;
+      margin: 60px 0;
+    }
+    .explodable-jupiter {
+      width: 200px;
+      height: 200px;
+      background: url('jupiter.jpg') center/cover;
+      border-radius: 50%;
+      box-shadow: 0 0 80px #ffb347, 0 0 180px #ffaa33;
+      transition: all 0.05s;
+      cursor: pointer;
+    }
+    .explodable-jupiter.explode {
+      animation: explodeBang 1.2s forwards cubic-bezier(0.2, 0.9, 0.3, 2);
+    }
+    @keyframes explodeBang {
+      0% { transform: scale(1); opacity: 1; filter: brightness(1); }
+      30% { transform: scale(2.5); opacity: 0.9; filter: brightness(2) hue-rotate(90deg); box-shadow: 0 0 300px white; }
+      60% { transform: scale(3.5) rotate(180deg); opacity: 0.5; filter: brightness(3) hue-rotate(180deg); box-shadow: 0 0 500px red, 0 0 800px yellow; }
+      100% { transform: scale(0) rotate(720deg); opacity: 0; filter: brightness(5); }
+    }
+
+    /* wish elements */
+    .shooting-star {
+      position: fixed;
+      top: 20%;
+      left: -200px;
+      width: 150px;
+      height: 4px;
+      background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,180,0.9), white);
+      border-radius: 50%;
+      filter: drop-shadow(0 0 20px gold) blur(1px);
+      transform: rotate(25deg);
+      z-index: 999;
+      pointer-events: none;
+      opacity: 0;
+    }
+    .shooting-star.shoot {
+      animation: shoot 1.5s ease-out forwards;
+    }
+    @keyframes shoot {
+      0% { left: -200px; top: 20%; opacity: 1; }
+      70% { opacity: 1; }
+      100% { left: 130%; top: 60%; opacity: 0; }
+    }
+
+    .wish-message {
+      position: fixed;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(20,0,40,0.9);
+      backdrop-filter: blur(15px);
+      border: 3px solid #ff88ff;
+      border-radius: 60px;
+      padding: 30px 60px;
+      color: white;
+      font-size: 2.5rem;
+      font-weight: bold;
+      text-shadow: 0 0 40px magenta, 0 0 80px cyan;
+      box-shadow: 0 0 150px #ff44aa;
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.4s;
+      pointer-events: none;
+      text-align: center;
+    }
+    .wish-message.show {
+      opacity: 1;
+      animation: wishGlow 2s infinite alternate;
+    }
+    @keyframes wishGlow {
+      0% { text-shadow: 0 0 20px white, 0 0 40px violet; }
+      100% { text-shadow: 0 0 80px gold, 0 0 150px hotpink; }
+    }
+
+    .footer-note {
+      text-align: center;
+      margin-top: 80px;
+      font-size: 1.2rem;
+      color: #ffd58c;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="starfield-canvas"></canvas>
+  <div id="bg-slideshow"></div>
+  <div class="floating-jupiter"></div>
+
+  <div class="overlay" id="mainOverlay">
+    <!-- floating buttons -->
+    <div class="float-buttons">
+      <a href="#top" class="float-btn" title="top">⬆️</a>
+      <a href="#basic-properties" class="float-btn" title="basics">🪐</a>
+      <a href="#origin" class="float-btn" title="origin">🌋</a>
+      <a href="#moons" class="float-btn" title="moons">🌕</a>
+      <div class="float-btn" id="colorFlipBtn" title="cycle colors">🎨</div>
+      <div class="float-btn" id="wishBtn" title="make a wish">✨</div>
+      <div class="float-btn" id="shakeBtn" title="shake the screen">📳</div> <!-- new shake button -->
+    </div>
+    <div class="float-buttons nav-mini">
+      <div class="float-btn" id="explodeTrigger" title="explode jupiter!">💥</div>
+      <div class="float-btn" id="slideRevealBtn" title="re-slide sections">✨</div>
+    </div>
+
+    <!-- wish elements -->
+    <div class="shooting-star" id="shootingStar"></div>
+    <div class="wish-message" id="wishMessage">✨ WISH GRANTED ✨</div>
+
+    <header id="top" style="text-align:center; padding: 40px 0;">
+      <h1 style="font-size:5rem;">♃ JUPITER</h1>
+      <p style="font-size:2rem; filter: hue-rotate(90deg); animation: hueCycle 6s infinite;">KING OF THE SOLAR SYSTEM</p>
+      <div style="width:200px; height:4px; background: linear-gradient(90deg, cyan, magenta, gold); margin:20px auto;"></div>
+    </header>
+
+    <!-- ========== FULL SCIENTIFIC OVERVIEW – ALL 25 SECTIONS ========== -->
+    <!-- 1. BASIC PROPERTIES -->
+    <section class="slide-section" id="basic-properties">
+      <h2>1. BASIC PROPERTIES & IDENTITY</h2>
+      <table>
+        <tr><th>Property</th><th>Value</th></tr>
+        <tr><td>Name</td><td>Jupiter (Roman king of the gods; Greek: Zeus)</td></tr>
+        <tr><td>Planetary Type</td><td>Gas Giant (Jovian planet)</td></tr>
+        <tr><td>Age</td><td>~4.6 billion years (oldest planet, formed ~1 million years after Sun)</td></tr>
+        <tr><td>Location</td><td>Fifth planet from Sun, between Mars and Saturn</td></tr>
+        <tr><td>Distance from Sun</td><td>740.6 million km (perihelion) - 816.4 million km (aphelion)</td></tr>
+        <tr><td>Average Distance</td><td>778.5 million km (5.2 AU)</td></tr>
+        <tr><td>Diameter (equatorial)</td><td>142,984 km (11.2 × Earth)</td></tr>
+        <tr><td>Diameter (polar)</td><td>133,708 km (oblateness 0.065)</td></tr>
+        <tr><td>Mass</td><td>1.898 × 10²⁷ kg (318 × Earth)</td></tr>
+        <tr><td>Volume</td><td>1.431 × 10¹⁵ km³ (1,321 × Earth)</td></tr>
+        <tr><td>Density (average)</td><td>1.33 g/cm³</td></tr>
+        <tr><td>Surface Area</td><td>6.22 × 10¹⁰ km² (122 × Earth)</td></tr>
+        <tr><td>Albedo</td><td>0.51 (highly reflective)</td></tr>
+        <tr><td>Apparent Magnitude</td><td>-2.7 (maximum, brighter than all stars except Sirius)</td></tr>
+      </table>
+    </section>
+
+    <!-- 2. ORIGIN & FORMATION -->
+    <section class="slide-section" id="origin">
+      <h2>2. ORIGIN & FORMATION: FROM QUANTUM FOAM TO KING OF PLANETS</h2>
+      <p><strong>Cosmic Origins: The First-Born Planet</strong> – formed just 1 million years after Sun. 13.8 bn years ago: Big Bang creates quarks → protons/neutrons → H (75%), He (25%). Multiple stellar generations fuse heavier elements, supernovae scatter them. 4.6 bn years ago: molecular cloud collapses, forming Sun and protoplanetary disk.</p>
+      <p><strong>The Frost Line:</strong> Jupiter formed just beyond the frost line at ~5 AU, where water condensed. This location was crucial: inside frost line only rocky materials; at frost line water vapor condensed creating a pressure trap; beyond abundant ice and rock.</p>
+      <p><strong>Formation Timeline – Core Accretion Model:</strong></p>
+      <table>
+        <tr><th>Stage</th><th>Time after SS formation</th><th>Event</th></tr>
+        <tr><td>Stage 1</td><td>0-1 million years</td><td>Dust condensation, planetesimal formation</td></tr>
+        <tr><td>Stage 2</td><td>1-3 million years</td><td>Icy planetesimals coalesce beyond frost line</td></tr>
+        <tr><td>Stage 3</td><td>3-5 million years</td><td>Planetary embryo reaches 10-18 Earth masses (M⊕)</td></tr>
+        <tr><td>Stage 4</td><td>5-6 million years</td><td>Rapid gas accretion begins – embryo reaches 150 M⊕ in &lt;1,000 years</td></tr>
+        <tr><td>Stage 5</td><td>6-10 million years</td><td>Final mass of 318 M⊕ achieved, creates gap in protoplanetary disk</td></tr>
+        <tr><td>Stage 6</td><td>10-100 million years</td><td>Moon system forms, migration occurs</td></tr>
+      </table>
+      <p>Rapid gas accretion: once embryo reached ~20 M⊕, it doubled mass every few hundred years.</p>
+      <p><strong>The Grand Tack Hypothesis:</strong> Formation distance ~3.5 AU, inward migration to ~1.5 AU, then outward to final 5.2 AU (Saturn resonance). Timescale 3-6 million years. Scattered material, limited Mars’s growth, delivered water to Earth.</p>
+      <p><strong>Jupiter's Primordial Size (2025 research):</strong> Young Jupiter was twice current diameter – could fit 8,000 Earths (now 1,300). Magnetic field then 50× stronger. Planet contracted as it cooled.</p>
+    </section>
+
+    <!-- 3. COMPOSITION -->
+    <section class="slide-section">
+      <h2>3. COMPOSITION (ELEMENTAL & CHEMICAL)</h2>
+      <h3>Bulk Atmospheric Composition (by volume)</h3>
+      <table>
+        <tr><th>Gas</th><th>Percentage</th><th>Notes</th></tr>
+        <tr><td>Hydrogen (H₂)</td><td>~89.8%</td><td>Molecular hydrogen, similar to solar composition</td></tr>
+        <tr><td>Helium (He)</td><td>~10.2%</td><td>Slightly depleted relative to Sun (sedimentation to interior)</td></tr>
+        <tr><td>Methane (CH₄)</td><td>~0.3%</td><td>Trace but spectrally important</td></tr>
+        <tr><td>Ammonia (NH₃)</td><td>~0.02%</td><td>Forms clouds, variable with depth</td></tr>
+        <tr><td>Water (H₂O)</td><td>~0.1% (variable)</td><td>Surprisingly low at probe entry site (hot spot)</td></tr>
+        <tr><td>Hydrogen deuteride (HD)</td><td>~0.005%</td><td>Used for D/H ratio measurements</td></tr>
+        <tr><td>Ethane, acetylene</td><td>Trace</td><td>Photochemical products</td></tr>
+      </table>
+      <h3>Interior Composition (by mass)</h3>
+      <table>
+        <tr><th>Layer</th><th>Composition</th><th>Mass Fraction</th></tr>
+        <tr><td>Atmosphere</td><td>H-He (solar composition)</td><td>~5%</td></tr>
+        <tr><td>Outer envelope</td><td>H-He with enriched heavy elements</td><td>~50%</td></tr>
+        <tr><td>Inner envelope</td><td>H-He with dissolved ices/rock</td><td>~30%</td></tr>
+        <tr><td>Core</td><td>Rock, ice, metallic elements</td><td>~15% (10-30 M⊕)</td></tr>
+      </table>
+      <p><strong>Heavy Element Enrichment:</strong> Overall 3-5× solar. Carbon 3×, Nitrogen 3-4×, Sulfur 3×, Noble gases 2-3×. Oxygen uncertain.</p>
+      <p><strong>"Fuzzy Core" Revelation (Juno):</strong> No sharp boundary – dilute core extends to ~50% radius. Heavy elements mixed outward, likely from giant impact during formation.</p>
+    </section>
+
+    <!-- 4. INTERNAL STRUCTURE & LAYERS -->
+    <section class="slide-section">
+      <h2>4. INTERNAL STRUCTURE & LAYERS</h2>
+      <pre>
+                    ← Exosphere (H, He escaping)
+                 ← Thermosphere (auroral heating)
+              ← Stratosphere (haze layers)
+           ← Troposphere (weather layer, clouds)
+        ← Molecular hydrogen envelope (H₂)
+     ← Metallic hydrogen envelope (H⁺, e⁻)
+  ← "Fuzzy" core region (rock + ice + H-He mixture)
+← Compact core (10-30 M⊕ of rock and ice)
+      </pre>
+      <h3>1. Core Region</h3>
+      <table>
+        <tr><td>Radius</td><td>~0-15% of Jupiter's radius (0-10,000 km)</td></tr>
+        <tr><td>Mass</td><td>10-30 Earth masses (5-15% of total)</td></tr>
+        <tr><td>Composition</td><td>Rock (silicates, metals) and ice</td></tr>
+        <tr><td>State</td><td>High-pressure, high-temperature solid/fluid mixture</td></tr>
+        <tr><td>Temperature</td><td>~20,000-30,000 K (center)</td></tr>
+        <tr><td>Pressure</td><td>~3,000-4,500 GPa</td></tr>
+      </table>
+      <h3>2. Metallic Hydrogen Envelope</h3>
+      <table>
+        <tr><td>Radius range</td><td>~15-55% of Jupiter's radius</td></tr>
+        <tr><td>Mass fraction</td><td>~60-70%</td></tr>
+        <tr><td>Composition</td><td>Liquid metallic hydrogen + helium + heavy elements</td></tr>
+        <tr><td>Temperature</td><td>10,000 K (outer) to 20,000 K (inner)</td></tr>
+      </table>
+      <p>Critical: generates magnetic field. Helium rain at 1-2 Mbar depletes upper atmosphere, generates heat.</p>
+      <h3>3. Molecular Hydrogen Envelope</h3>
+      <p>Radius ~55-100% of Jupiter, mass ~20-30%, supercritical fluid, temperature 170 K (cloud tops) to 10,000 K (base).</p>
+      <h3>4. Atmosphere (Visible "Surface")</h3>
+      <p>No solid surface. "Surface" defined at 1 bar pressure level.</p>
+    </section>
+
+    <!-- 5. ENERGY & HEAT -->
+    <section class="slide-section">
+      <h2>5. ENERGY & HEAT</h2>
+      <p>Jupiter radiates 1.67× more energy than it receives from the Sun. Internal power: 3.35 × 10¹⁷ W. Heat flux at cloud tops: 5.4 W/m². Effective temperature: 124 K (110 K without internal heat).</p>
+      <p><strong>Sources:</strong> Gravitational contraction (Kelvin-Helmholtz) ~90%, helium rain ~10%, primordial heat minor. Planet shrinks ~1 cm/year.</p>
+    </section>
+
+    <!-- 6. TEMPERATURE PROFILE -->
+    <section class="slide-section">
+      <h2>6. TEMPERATURE PROFILE</h2>
+      <table>
+        <tr><th>Altitude (km above 1-bar)</th><th>Pressure (bar)</th><th>Temp (K)</th><th>Notes</th></tr>
+        <tr><td>+500</td><td>10⁻⁶</td><td>900-1,200</td><td>Thermosphere</td></tr>
+        <tr><td>+300</td><td>10⁻⁴</td><td>400-500</td><td>Mesosphere</td></tr>
+        <tr><td>+100</td><td>0.01</td><td>170-200</td><td>Stratosphere</td></tr>
+        <tr><td>0</td><td>1.0</td><td>165-170</td><td>1-bar "surface"</td></tr>
+        <tr><td>-50</td><td>3-4</td><td>200-220</td><td>Ammonia clouds</td></tr>
+        <tr><td>-100</td><td>8-10</td><td>260-280</td><td>Hydrosulfide clouds</td></tr>
+        <tr><td>-150</td><td>20-30</td><td>300-350</td><td>Water clouds</td></tr>
+        <tr><td>-500</td><td>1,000</td><td>800-1,000</td><td>Deep atmosphere</td></tr>
+        <tr><td>-2,000</td><td>20,000</td><td>3,000-4,000</td><td>Top of metallic H</td></tr>
+      </table>
+      <p>Anomalies: Great Red Spot ~110 K, hot spots up to 300 K.</p>
+    </section>
+
+    <!-- 7. ATMOSPHERIC PRESSURE -->
+    <section class="slide-section">
+      <h2>7. ATMOSPHERIC PRESSURE</h2>
+      <table>
+        <tr><th>Altitude (km above 1-bar)</th><th>Pressure</th><th>Earth equivalent</th></tr>
+        <tr><td>+500</td><td>10⁻⁶ bar</td><td>Low Earth orbit</td></tr>
+        <tr><td>0</td><td>1 bar</td><td>Sea level</td></tr>
+        <tr><td>-50</td><td>4 bar</td><td>4× sea level</td></tr>
+        <tr><td>-100</td><td>10 bar</td><td>10×</td></tr>
+        <tr><td>-150</td><td>30 bar</td><td>300 m underwater</td></tr>
+        <tr><td>-500</td><td>1,000 bar</td><td>10 km underwater</td></tr>
+        <tr><td>-10,000</td><td>10⁶ bar</td><td>2,000 km underwater</td></tr>
+      </table>
+      <p>Galileo probe descended to 24 bar (~150 km depth) before signal loss.</p>
+    </section>
+
+    <!-- 8. DENSITY PROFILE -->
+    <section class="slide-section">
+      <h2>8. DENSITY PROFILE</h2>
+      <table>
+        <tr><th>Depth (km below 1-bar)</th><th>Density (g/cm³)</th><th>State</th></tr>
+        <tr><td>0</td><td>~0.0002</td><td>Gas</td></tr>
+        <tr><td>-500</td><td>0.01-0.05</td><td>Supercritical fluid</td></tr>
+        <tr><td>-2,000</td><td>0.1-0.3</td><td>Dense supercritical H₂</td></tr>
+        <tr><td>-10,000</td><td>~1.0</td><td>Transition to metallic H</td></tr>
+        <tr><td>-20,000</td><td>2-3</td><td>Metallic hydrogen</td></tr>
+        <tr><td>-40,000</td><td>4-6</td><td>Metallic + heavy elements</td></tr>
+        <tr><td>Core center</td><td>10-25</td><td>Rock, ice, metals</td></tr>
+      </table>
+      <p>Average whole planet: 1.33 g/cm³.</p>
+    </section>
+
+    <!-- 9. ATMOSPHERIC FEATURES & WEATHER -->
+    <section class="slide-section">
+      <h2>9. ATMOSPHERIC FEATURES & WEATHER</h2>
+      <p><strong>Banded Structure:</strong> Zones (bright, high, cool, rising) and Belts (dark, low, warm, sinking). Jet streams up to 600 km/h. Stratospheric jets near poles exceed 900 mph (ALMA).</p>
+      <p><strong>The Great Red Spot (GRS):</strong> Size ~16,000 × 12,000 km (shrinking). Historical size in 1800s: 48,000 km. Rotation period ~6 days, winds 400 km/h, top temp ~110 K. Possibly same storm observed since 1665. Heats upper atmosphere.</p>
+      <p><strong>Other Storms:</strong> White ovals, brown barges, polar cyclones (clusters at both poles). Lightning comparable to Earth's, superbolts. Auroras most powerful in Solar System (Io footprint, main oval).</p>
+    </section>
+
+    <!-- 10. CLOUD LAYERS -->
+    <section class="slide-section">
+      <h2>10. CLOUD LAYERS</h2>
+      <table>
+        <tr><th>Layer</th><th>Pressure</th><th>Composition</th><th>Temp</th></tr>
+        <tr><td>Upper clouds</td><td>0.2-0.5 bar</td><td>Ammonia ice (NH₃)</td><td>~120 K</td></tr>
+        <tr><td>Middle clouds</td><td>1-2 bar</td><td>Ammonium hydrosulfide (NH₄SH)</td><td>~200 K</td></tr>
+        <tr><td>Lower clouds</td><td>3-7 bar</td><td>Water ice/water-ammonia solution</td><td>~260 K</td></tr>
+        <tr><td>Deep clouds</td><td>10 bar</td><td>Water droplets, ammonia solution</td><td>300 K</td></tr>
+      </table>
+      <p>Colors likely from phosphorus, sulfur compounds, tholins.</p>
+    </section>
+
+    <!-- 11. ROTATION: THREE SYSTEMS -->
+    <section class="slide-section">
+      <h2>11. ROTATION: THREE SYSTEMS IN ONE</h2>
+      <table>
+        <tr><th>System</th><th>Latitude</th><th>Period</th><th>Use</th></tr>
+        <tr><td>System I</td><td>Equatorial (±10°)</td><td>9h 50m 30s</td><td>Tracking equatorial features</td></tr>
+        <tr><td>System II</td><td>Higher latitudes</td><td>9h 55m 41s</td><td>Mid-latitude features</td></tr>
+        <tr><td>System III</td><td>Magnetic field (interior)</td><td>9h 55m 29s</td><td>Official rotation period</td></tr>
+      </table>
+      <p>Equatorial region rotates ~5 minutes faster.</p>
+    </section>
+
+    <!-- 12. ORBITAL PARAMETERS -->
+    <section class="slide-section">
+      <h2>12. ORBITAL PARAMETERS</h2>
+      <table>
+        <tr><td>Orbital period (year)</td><td>11.86 Earth years</td></tr>
+        <tr><td>Synodic period</td><td>398.9 days</td></tr>
+        <tr><td>Average orbital distance</td><td>5.2 AU (778.5 million km)</td></tr>
+        <tr><td>Orbital eccentricity</td><td>0.048</td></tr>
+        <tr><td>Perihelion</td><td>4.95 AU (740.6 million km)</td></tr>
+        <tr><td>Aphelion</td><td>5.46 AU (816.4 million km)</td></tr>
+        <tr><td>Orbital inclination</td><td>1.3° to ecliptic</td></tr>
+        <tr><td>Axial tilt (obliquity)</td><td>3.1° (negligible seasons)</td></tr>
+      </table>
+    </section>
+
+    <!-- 13. POSITION IN GALAXY -->
+    <section class="slide-section">
+      <h2>13. POSITION IN GALAXY</h2>
+      <table>
+        <tr><td>Distance from galactic center</td><td>~26,660 light-years (8,178 parsecs)</td></tr>
+        <tr><td>Galactic location</td><td>Orion Arm (Local Spur), Milky Way</td></tr>
+        <tr><td>Galactic orbital speed</td><td>~230 km/s</td></tr>
+        <tr><td>Galactic orbital period</td><td>~225-250 million years</td></tr>
+        <tr><td>Completed galactic orbits</td><td>~20 since formation</td></tr>
+      </table>
+    </section>
+
+    <!-- 14. MAGNETIC FIELD & MAGNETOSPHERE -->
+    <section class="slide-section">
+      <h2>14. MAGNETIC FIELD & MAGNETOSPHERE</h2>
+      <p><strong>Field Properties:</strong> Magnetic moment 1.55×10²⁷ Am² (20,000× Earth). Surface field 4.3 gauss (equator), polar ~14 gauss. Dipole tilt ~10°. Great Blue Spot anomaly near equator.</p>
+      <p><strong>Magnetosphere:</strong> Largest coherent structure – dayside magnetopause 65-100 R♃, magnetotail extends beyond Saturn (600 million km). Radiation belts extremely hazardous. Plasma sheet from Io.</p>
+    </section>
+
+    <!-- 15. RINGS -->
+    <section class="slide-section">
+      <h2>15. RINGS</h2>
+      <table>
+        <tr><th>Ring Component</th><th>Distance from center</th><th>Width</th><th>Thickness</th><th>Composition</th></tr>
+        <tr><td>Halo ring</td><td>92,000-122,500 km</td><td>~30,000 km</td><td>10,000 km</td><td>Fine dust</td></tr>
+        <tr><td>Main ring</td><td>122,500-129,000 km</td><td>~6,500 km</td><td>30-100 km</td><td>Dust from Adrastea, Metis</td></tr>
+        <tr><td>Gossamer rings</td><td>129,000-241,000 km</td><td>~112,000 km</td><td>Very thin</td><td>Dust from Amalthea, Thebe</td></tr>
+      </table>
+      <p>Faint, dusty, continuously replenished.</p>
+    </section>
+
+    <!-- 16. MOONS -->
+    <section class="slide-section" id="moons">
+      <h2>16. MOONS: A MINIATURE SOLAR SYSTEM</h2>
+      <p>95 known moons (2024).</p>
+      <h3>Galilean Moons</h3>
+      <table>
+        <tr><th>Moon</th><th>Distance (× Moon's orbit)</th><th>Diameter (km)</th><th>Mass (× Moon)</th><th>Key Features</th></tr>
+        <tr><td>Io</td><td>1.05</td><td>3,643</td><td>1.22</td><td>Most volcanically active; sulfur surface</td></tr>
+        <tr><td>Europa</td><td>1.67</td><td>3,122</td><td>0.66</td><td>Icy surface, subsurface ocean, potential habitability</td></tr>
+        <tr><td>Ganymede</td><td>2.67</td><td>5,262</td><td>2.02</td><td>Largest moon in Solar System; own magnetic field</td></tr>
+        <tr><td>Callisto</td><td>4.70</td><td>4,821</td><td>1.46</td><td>Heavily cratered, ancient surface</td></tr>
+      </table>
+      <p><strong>Inner Moons:</strong> Metis, Adrastea, Amalthea, Thebe – ring-related. <strong>Irregular Moons:</strong> ~75 captured asteroids.</p>
+    </section>
+
+    <!-- 17. LIFE POTENTIAL -->
+    <section class="slide-section">
+      <h2>17. LIFE POTENTIAL</h2>
+      <p><strong>On Jupiter itself:</strong> Extremely unlikely – no liquid water, extreme pressures/temperatures. Cloud decks at 0.5-5 bar have T/p that could theoretically support extremophiles, but no liquid water.</p>
+      <p><strong>On Europa and Ganymede:</strong> Promising – subsurface oceans, tidal heating. JUICE (arriving 2031) and Europa Clipper (2030) will investigate.</p>
+    </section>
+
+    <!-- 18. LIGHT & EMISSIONS -->
+    <section class="slide-section">
+      <h2>18. LIGHT & EMISSIONS</h2>
+      <p><strong>Reflected light:</strong> Albedo 0.51, magnitude -2.7. Color yellowish-white with reddish bands. <strong>Thermal emission:</strong> Peak ~10-20 μm, brightness temp ~124 K. <strong>Radio:</strong> Decametric (Io-controlled), decimetric (synchrotron), auroral kilometric radiation. <strong>UV/X-ray auroras:</strong> Brightest in Solar System.</p>
+    </section>
+
+    <!-- 19. GRAVITY & DYNAMICS -->
+    <section class="slide-section">
+      <h2>19. GRAVITY & DYNAMICS</h2>
+      <table>
+        <tr><td>Surface gravity (1 bar)</td><td>24.79 m/s² (2.53× Earth)</td></tr>
+        <tr><td>Escape velocity</td><td>60.2 km/s</td></tr>
+        <tr><td>Equatorial gravity reduction</td><td>~10% from rotation</td></tr>
+      </table>
+      <p>Juno gravity: asymmetric field from deep flows (zonal winds extend to 3,000 km).</p>
+    </section>
+
+    <!-- 20. BLACK HOLE POSSIBILITY -->
+    <section class="slide-section">
+      <h2>20. BLACK HOLE POSSIBILITY</h2>
+      <p>Current state: NOT a black hole candidate – mass too small by factor millions, density 1.33 g/cm³. Schwarzschild radius would be ~2.8 m. If Jupiter became black hole, same gravity, moons would orbit unchanged, but darkness.</p>
+    </section>
+
+    <!-- 21. WHY JUPITER IS NOT A STAR -->
+    <section class="slide-section">
+      <h2>21. WHY JUPITER IS NOT A STAR ("FAILED STAR" QUESTION)</h2>
+      <table>
+        <tr><th>Object</th><th>Mass (Earth masses)</th></tr>
+        <tr><td>Jupiter</td><td>318 M⊕</td></tr>
+        <tr><td>Minimum brown dwarf</td><td>4,000 M⊕ (13 M♃)</td></tr>
+        <tr><td>Minimum red dwarf</td><td>24,000 M⊕ (80 M♃)</td></tr>
+      </table>
+      <p>Jupiter would need 13× current mass for deuterium fusion, 80× for hydrogen fusion. It stopped growing because it ran out of gas and cleared its orbit.</p>
+    </section>
+
+    <!-- 22. ATOMIC & QUANTUM BEHAVIOR -->
+    <section class="slide-section">
+      <h2>22. ATOMIC & QUANTUM BEHAVIOR</h2>
+      <p><strong>States of matter:</strong> Atmosphere (molecular gas), deep atmosphere (supercritical fluid), molecular H₂ envelope (dense supercritical), metallic H (liquid metallic, degenerate electrons), core (high-pressure solid/fluid). <strong>Quantum effects:</strong> Electron degeneracy, pressure ionization, magnetic dynamo, synchrotron radiation.</p>
+      <pre>Quarks → protons/neutrons → nuclei → atoms → molecules → planet (via Big Bang, stellar nucleosynthesis, solar nebula, accretion, runaway gas accretion).</pre>
+    </section>
+
+    <!-- 23. LARGE-SCALE PROPERTIES -->
+    <section class="slide-section">
+      <h2>23. LARGE-SCALE PROPERTIES</h2>
+      <p>Mass: 1.898×10²⁷ kg = 1,898,000,000,000,000,000,000,000 tons. Surface area 62 billion km², volume 1.43 trillion km³. Atmosphere mass ~1×10²⁰ kg. Atoms in Jupiter ~10⁵⁴. Walking around equator would take 25 years. Jupiter's mass in humans: 3×10²².</p>
+    </section>
+
+    <!-- 24. MYSTERIES & UNSOLVED QUESTIONS -->
+    <section class="slide-section">
+      <h2>24. MYSTERIES & UNSOLVED QUESTIONS</h2>
+      <ul>
+        <li>Core structure: how fuzzy?</li>
+        <li>Global water abundance?</li>
+        <li>Depth of zonal winds?</li>
+        <li>Dynamo generation, Great Blue Spot?</li>
+        <li>Helium rain activity?</li>
+        <li>Great Red Spot longevity?</li>
+        <li>Galilean moon formation details?</li>
+        <li>Origin of Trojan asteroids?</li>
+        <li>Ring composition?</li>
+        <li>Exact coloring agents?</li>
+      </ul>
+      <p>Upcoming: Juno extended (2025), JUICE (2031), Europa Clipper (2030).</p>
+    </section>
+
+    <!-- 25. SUMMARY TABLE -->
+    <section class="slide-section">
+      <h2>25. SUMMARY TABLE</h2>
+      <table>
+        <tr><th>Aspect</th><th>Summary</th></tr>
+        <tr><td>Identity</td><td>Largest planet, gas giant, king of Solar System</td></tr>
+        <tr><td>Age</td><td>4.6 billion years (oldest planet)</td></tr>
+        <tr><td>Composition</td><td>90% H, 10% He, enriched heavy elements</td></tr>
+        <tr><td>Structure</td><td>Fuzzy core, metallic H, molecular H, atmosphere</td></tr>
+        <tr><td>Atmosphere</td><td>Bands, GRS, ammonia clouds</td></tr>
+        <tr><td>Temperature</td><td>Cloud tops 120 K, core 20,000 K</td></tr>
+        <tr><td>Rotation</td><td>9h 55m (System III)</td></tr>
+        <tr><td>Year</td><td>11.86 Earth years</td></tr>
+        <tr><td>Magnetic field</td><td>20,000× Earth's, largest magnetosphere</td></tr>
+        <tr><td>Rings</td><td>Faint, dusty</td></tr>
+        <tr><td>Moons</td><td>95 known, 4 Galilean</td></tr>
+        <tr><td>Life?</td><td>Jupiter unlikely; Europa & Ganymede promising</td></tr>
+        <tr><td>Failed star?</td><td>No – needs 13× mass for deuterium fusion</td></tr>
+        <tr><td>Black hole?</td><td>No</td></tr>
+        <tr><td>Future</td><td>Slowly cooling, will survive Sun's red giant phase</td></tr>
+      </table>
+    </section>
+
+    <!-- explosion zone -->
+    <div id="explosion-area">
+      <div class="explodable-jupiter" id="jupiterBoom"></div>
+    </div>
+    <div style="text-align: center;">
+      <button class="anim-btn" id="boomBtn">💥 CRASH & EXPLODE JUPITER 💥</button>
+    </div>
+
+    <div class="footer-note">⚡ complete scientific overview + SHAKE button! ⚡</div>
+  </div>
+
+  <script>
+    (function() {
+      // starfield canvas
+      const canvas = document.getElementById('starfield-canvas');
+      const ctx = canvas.getContext('2d');
+      let width, height;
+      let stars = [];
+      const NUM_STARS = 400;
+
+      function initStars() {
+        stars = [];
+        for (let i = 0; i < NUM_STARS; i++) {
+          stars.push({
+            x: Math.random(),
+            y: Math.random(),
+            radius: Math.random() * 2 + 1,
+            speed: Math.random() * 0.3 + 0.1,
+            brightness: Math.random() * 0.7 + 0.3
+          });
+        }
+      }
+
+      function resizeCanvas() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = width;
+        canvas.height = height;
+      }
+
+      function animateStars() {
+        ctx.clearRect(0, 0, width, height);
+        stars.forEach(s => {
+          s.x += s.speed * 0.002;
+          s.y += s.speed * 0.001;
+          if (s.x > 1) s.x = 0;
+          if (s.y > 1) s.y = 0;
+          const xPos = s.x * width;
+          const yPos = s.y * height;
+          const opacity = s.brightness * (0.6 + 0.4 * Math.sin(Date.now() * 0.002 + s.x * 10));
+          ctx.beginPath();
+          ctx.arc(xPos, yPos, s.radius, 0, 2 * Math.PI);
+          ctx.fillStyle = `rgba(255, 240, 200, ${opacity})`;
+          ctx.fill();
+          if (s.radius > 1.8) {
+            ctx.shadowColor = 'white';
+            ctx.shadowBlur = 8;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+          }
+        });
+        requestAnimationFrame(animateStars);
+      }
+
+      window.addEventListener('resize', resizeCanvas);
+      resizeCanvas();
+      initStars();
+      animateStars();
+
+      // background slideshow
+      const bg = document.getElementById('bg-slideshow');
+      const images = ['space1.jpg','space2.jpg','space3.jpg','space4.jpg','space5.jpg','space6.jpg','space7.jpg','space8.jpg'];
+      let idx = 0;
+      function changeBg() {
+        bg.style.backgroundImage = `url('${images[idx]}')`;
+        idx = (idx + 1) % images.length;
+      }
+      changeBg();
+      setInterval(changeBg, 8000);
+
+      // slide reveal
+      const sections = document.querySelectorAll('.slide-section');
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) entry.target.classList.add('reveal');
+        });
+      }, { threshold: 0.2 });
+      sections.forEach(s => observer.observe(s));
+      setTimeout(() => sections.forEach(s => s.classList.add('reveal')), 300);
+
+      document.getElementById('slideRevealBtn').addEventListener('click', () => {
+        sections.forEach(s => {
+          s.classList.remove('reveal');
+          void s.offsetWidth;
+          s.classList.add('reveal');
+        });
+      });
+
+      document.getElementById('colorFlipBtn').addEventListener('click', () => {
+        document.querySelector('.overlay').style.animation = 'hueCycle 3s infinite linear';
+        setTimeout(() => document.querySelector('.overlay').style.animation = '', 6000);
+      });
+
+      // explosion
+      const jupBOOM = document.getElementById('jupiterBoom');
+      const boomBtn = document.getElementById('boomBtn');
+      const explodeTrigger = document.getElementById('explodeTrigger');
+      function explodeNow() {
+        jupBOOM.classList.add('explode');
+        setTimeout(() => jupBOOM.classList.remove('explode'), 1500);
+      }
+      boomBtn.addEventListener('click', explodeNow);
+      explodeTrigger.addEventListener('click', explodeNow);
+      jupBOOM.addEventListener('click', explodeNow);
+
+      // wish button
+      const wishBtn = document.getElementById('wishBtn');
+      const shootingStar = document.getElementById('shootingStar');
+      const wishMsg = document.getElementById('wishMessage');
+      wishBtn.addEventListener('click', () => {
+        shootingStar.classList.remove('shoot');
+        void shootingStar.offsetWidth;
+        shootingStar.classList.add('shoot');
+        wishMsg.classList.add('show');
+        const wishes = ['✨ WISH GRANTED ✨', '⭐ MAY YOUR DREAM COME TRUE ⭐', '🌟 COSMIC WISH ACTIVATED 🌟', '🪐 JUPITER BLESSES YOU'];
+        wishMsg.textContent = wishes[Math.floor(Math.random() * wishes.length)];
+        setTimeout(() => wishMsg.classList.remove('show'), 2500);
+        wishBtn.style.animation = 'none';
+        wishBtn.offsetHeight;
+        wishBtn.style.animation = 'wishPulse 0.5s 4';
+        setTimeout(() => wishBtn.style.animation = 'wishPulse 1.5s infinite alternate', 800);
+      });
+
+      // SHAKE BUTTON functionality
+      const shakeBtn = document.getElementById('shakeBtn');
+      const overlay = document.getElementById('mainOverlay');
+      shakeBtn.addEventListener('click', () => {
+        overlay.classList.add('shake-now');
+        setTimeout(() => {
+          overlay.classList.remove('shake-now');
+        }, 700); // slightly longer than animation (0.6s)
+        // also make button react
+        shakeBtn.style.transform = 'scale(1.5)';
+        setTimeout(() => shakeBtn.style.transform = '', 300);
+      });
+    })();
+  </script>
+</body>
+</html>
